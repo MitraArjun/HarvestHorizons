@@ -1,102 +1,334 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <script src="https://unpkg.com/jspsych@7"></script>
-  <script src="https://unpkg.com/jspsych@7/plugins/jspsych-html-button-response.js"></script>
+  <meta charset="UTF-8">
+  <title>Pre experiment Questionnaire</title>
+  <script src="https://unpkg.com/jspsych@8.2.1"></script>
+  <link href="https://unpkg.com/jspsych@8.2.1/css/jspsych.css" rel="stylesheet" type="text/css" />
+  <script src="https://unpkg.com/@jspsych/plugin-html-keyboard-response@2.1.0"></script>
+  <script src="https://unpkg.com/@jspsych/plugin-html-button-response@2.1.0"></script>
+  <script src="https://unpkg.com/@jspsych/plugin-call-function@2.1.0"></script>
+  <script src="https://unpkg.com/@jspsych/plugin-survey-html-form@2.1.0"></script>
+  <script src="https://unpkg.com/@jspsych/plugin-survey-multi-choice@2.1.0"></script>
+  <script src="https://unpkg.com/@jspsych/plugin-image-button-response@2.1.0"></script>
+
 </head>
 <body></body>
 <script>
-(async function(){
+  // 1. Initialize jsPsych
+  const jsPsych = initJsPsych();
 
-  // 1) Define the delays table
+  // 2. Your Google Sheets endpoint
+  const sheetUrl = "https://script.google.com/macros/s/AKfycbzpX-6Cf9jq2ewoB24KDzqWjP5_ADlTNwBCFsdhmLyKRQmzUAu-9T33-ZIspQ74WpKO/exec";
+  
+
+  // 3. Demographics trial (uses jsPsychSurveyHtmlForm)
+  const demographics = {
+    type: jsPsychSurveyHtmlForm,
+    preamble: '<p><strong>Welcome to our experiment!</strong></p>' +
+              '<p><strong>Before we begin, we need to collect some demographic information.</strong></p>' +
+              '<p><strong>This information is for research purposes only and will be kept confidential.</strong></p>' +
+              '<p><strong>Please enter your demographics:</strong></p>',
+    html: `
+      <label>Name: <input name="name" type="text" required></label><br>
+      <label>Age: <input name="age"  type="number" min="18" max="100" required></label><br>
+      <label>IITK Roll: <input name="roll" type="text" required></label><br>
+      <label>Gender:
+        <select name="gender" required>
+          <option>Male</option>
+          <option>Female</option>
+          <option>Other</option>
+        </select>
+      </label>
+      <label>Email: <input name="email" type="email" required></label><br>
+    `,
+    button_label: 'Next',
+  };
+  
+  // 4. Delays Table (used in the 5-trial adjusting-delay procedure)
   const delays = [
-    {text: "1 hr", k_immediate:24.0, k_delayed:17.0},
-    {text: "2 hr", k_immediate:0,    k_delayed:0   },
-    // ... fill in all 31 entries ...
-    {text: "25 years", k_immediate:0.000129, k_delayed:0.000110}
+    { text: "1 hr",       k_immediate: 24.0,    k_delayed: 17.0 },
+    { text: "2 hr",       k_immediate: 0,       k_delayed: 0 },
+    { text: "3 hr",       k_immediate: 9.79,    k_delayed: 6.93 },
+    { text: "4 hr",       k_immediate: 0,       k_delayed: 0 },
+    { text: "6 hr",       k_immediate: 4.90,    k_delayed: 3.27 },
+    { text: "9 hr",       k_immediate: 0,       k_delayed: 0 },
+    { text: "12 hr",      k_immediate: 2.31,    k_delayed: 1.41 },
+    { text: "1 day",      k_immediate: 0,       k_delayed: 0 },
+    { text: "1.5 days",   k_immediate: 0.816,   k_delayed: 0.577 },
+    { text: "2 days",     k_immediate: 0,       k_delayed: 0 },
+    { text: "3 days",     k_immediate: 0.408,   k_delayed: 0.289 },
+    { text: "4 days",     k_immediate: 0,       k_delayed: 0 },
+    { text: "1 week",     k_immediate: 0.189,   k_delayed: 0.117 },
+    { text: "1.5 weeks",  k_immediate: 0,       k_delayed: 0 },
+    { text: "2 weeks",    k_immediate: 0.0825,  k_delayed: 0.0583 },
+    { text: "3 weeks",    k_immediate: 0,       k_delayed: 0 },
+    { text: "1 month",    k_immediate: 0.0396,  k_delayed: 0.0232 },
+    { text: "2 months",   k_immediate: 0,       k_delayed: 0 },
+    { text: "3 months",   k_immediate: 0.0134,  k_delayed: 0.00949 },
+    { text: "4 months",   k_immediate: 0,       k_delayed: 0 },
+    { text: "6 months",   k_immediate: 0.00671, k_delayed: 0.004741 },
+    { text: "8 months",   k_immediate: 0,       k_delayed: 0 },
+    { text: "1 year",     k_immediate: 0.00335, k_delayed: 0.00194 },
+    { text: "2 years",    k_immediate: 0,       k_delayed: 0 },
+    { text: "3 years",    k_immediate: 0.00112, k_delayed: 0.000791 },
+    { text: "4 years",    k_immediate: 0,       k_delayed: 0 },
+    { text: "5 years",    k_immediate: 0.000612,k_delayed: 0.000433 },
+    { text: "8 years",    k_immediate: 0,       k_delayed: 0 },
+    { text: "12 years",   k_immediate: 0.000279,k_delayed: 0.000186 },
+    { text: "18 years",   k_immediate: 0,       k_delayed: 0 },
+    { text: "25 years",   k_immediate: 0.000129,k_delayed: 0.000110 }
   ];
 
-  // 2) Demographics trial
-  const demographics = {
-    type: 'jspsych-html-button-response',
+  // 5. The 5-trial adjusting-delay procedure
+  const intro_story = {
+    type: jsPsychHtmlButtonResponse,
     stimulus: `
-      <p>Please enter your demographics:</p>
-      Name: <input id="name"><br>
-      Age: <input id="age" type="number"><br>
-      Roll: <input id="roll"><br>
-      Gender:
-        <select id="gender">
-          <option>Male</option><option>Female</option><option>Other</option>
-        </select><br>
-      `,
-    choices: ['Continue'],
-    on_finish: () => ({
-      name: document.getElementById('name').value,
-      age:  document.getElementById('age').value,
-      roll: document.getElementById('roll').value,
-      gender: document.getElementById('gender').value
-    })
-  };
+        <p>On the next few screens, you will be presented with hypothetical scenarios where you have to make a series of choices.<p>
+        <p>These choices will be about whether you would like to get ₹500 right now, or you can wait for a larger amount, ₹1000, after some time has passed.</p>
+        <p>Please choose between either options as they are presented. There are no right or wrong answers—just pick what you actually prefer.</p>
+    `,
+    choices: ['Next']
+    };
 
-  // 3) Build the 5-trial adjusting timeline
   let low = 0, high = delays.length - 1;
   const adjust_trials = [];
   for(let t=0; t<5; t++){
     adjust_trials.push({
-      type: 'jspsych-html-button-response',
+      type: jsPsychHtmlButtonResponse,
       stimulus: () => {
-        const mid = Math.floor((low+high)/2);
-        return `<p>Choose:</p>
-                <button>₹500 today</button>
-                <button>₹1000 in ${delays[mid].text}</button>`;
+        const mid = Math.floor((low + high) / 2);
+        return `<p>Which do you prefer between these two options?</p>
+                <p><strong>Option A: ₹500 today</strong></p>
+                <p><strong>Option B: ₹1000 in ${delays[mid].text}</strong></p>`;
       },
-      choices: ['Now','Later'],
+      choices: ['Click to choose Rs. 500','Click to choose Rs. 1000'],
       on_finish: (data) => {
-        const mid = Math.floor((low+high)/2);
+        const mid = Math.floor((low + high) / 2);
+        data.mid = mid;
         if(data.response === 0){
           high = mid - 1;
         } else {
           low = mid + 1;
         }
-        data.mid = mid;
       }
     });
   }
 
-  // 4) Final calculation
-  const final_trial = {
-    type: 'jspsych-call-function',
+  // 6. Final calculation & send to Google Sheet
+  const final_calc = {
+    type: jsPsychCallFunction,
     func: () => {
-      const last = jsPsych.data.get().last(1).values()[0];
+      const last = jsPsych.data.get().filter({trial_type:'html-button-response'}).last(1).values()[0];
       const mid = last.mid;
       const choiceLeft = last.response === 0;
       const k = choiceLeft
         ? delays[mid].k_immediate
         : delays[mid].k_delayed;
-      jsPsych.data.addProperties({discount_k: k});
-      alert('Your discount rate k = ' + k.toFixed(4));
+      jsPsych.data.addProperties({ discount_k: k });
+
+      // Extract demographics
+      const demoData = jsPsych.data.get().filter({trial_type: 'survey-html-form'}).last(1).values()[0];
+      const responses = demoData.response;
+
+      // POST to Google Sheet
+      fetch(sheetUrl, {
+        method: "POST",
+        mode: "no-cors",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name:       responses.name,
+          age:        responses.age,
+          roll:       responses.roll,
+          gender:     responses.gender,
+          email:      responses.email, 
+          discount_k: k
+        })
+      });
     }
   };
 
-  // 5) Thanks screen
-  const thanks = {
-    type: 'jspsych-html-button-response',
-    stimulus: '<p>Thank you for participating!</p>',
-    choices: ['Finish']
-  };
+    // 6. Instructions trial
+    const instructions_story = {
+        type: jsPsychHtmlButtonResponse,
+        stimulus: `
+            <p>We will now introduce you to the instructions regarding the experiment.<p>
+            <p>Please read the instructions carefully and make sure you understand them.</p>
+            <p>There will be a couple of questions at the end to test your understanding.</p>
+        `,
+        choices: ['Next']
+    };
 
-  // 6) Run the experiment
-  await jsPsych.init({
-    timeline: [
-      {type: 'jspsych-html-keyboard-response',stimulus: '<p>Press any key to begin.</p>'},
-      demographics,
-      ...adjust_trials,
-      final_trial,
-      thanks
-    ],
-    on_finish: () => jsPsych.data.display()
-  });
+    const slide_urls = [
+        'https://github.com/MitraArjun/pre_questionaire_HH/raw/main/slide01.jpg',
+        'https://github.com/MitraArjun/pre_questionaire_HH/raw/main/slide02.jpg',
+        'https://github.com/MitraArjun/pre_questionaire_HH/raw/main/slide03.jpg',
+        'https://github.com/MitraArjun/pre_questionaire_HH/raw/main/slide04.jpg',
+        'https://github.com/MitraArjun/pre_questionaire_HH/raw/main/slide05.jpg',
+        'https://github.com/MitraArjun/pre_questionaire_HH/raw/main/slide06.jpg',
+        'https://github.com/MitraArjun/pre_questionaire_HH/raw/main/slide07.jpg',
+        'https://github.com/MitraArjun/pre_questionaire_HH/raw/main/slide08.jpg',
+        'https://github.com/MitraArjun/pre_questionaire_HH/raw/main/slide09.jpg',
+        'https://github.com/MitraArjun/pre_questionaire_HH/raw/main/slide10.jpg',
+        'https://github.com/MitraArjun/pre_questionaire_HH/raw/main/slide11.jpg',
+        'https://github.com/MitraArjun/pre_questionaire_HH/raw/main/slide12.jpg',
+        'https://github.com/MitraArjun/pre_questionaire_HH/raw/main/slide13.jpg',
+        'https://github.com/MitraArjun/pre_questionaire_HH/raw/main/slide14.jpg'
+    ];
 
-})();
+    const instructions_timeline = slide_urls.map(url => ({
+        type: jsPsychImageButtonResponse,
+        stimulus: url,
+        choices: ['Next'],
+        prompt: '<p>Click "Next" to go to the next instruction.</p>',
+        stimulus_width: 960,
+        stimulus_height: 540
+    }));
+
+
+    // 7. Comprehension check
+    const farming_comprehension_check = {
+        type: jsPsychSurveyMultiChoice,
+        preamble: '<h2>Farming Game: Comprehension Check</h2><p>Please answer all questions below.</p>',
+        questions: [
+            {
+            prompt: "How do you sow crops on the empty plot?",
+            options: [
+                "Left click",
+                "Revolving the mouse-wheel",
+                "Right-click",
+                "All of the above"
+            ],
+            required: true
+            },
+            {
+            prompt: "How do you choose which crops to sow using the mouse?",
+            options: [
+                "Left click",
+                "Revolving the mouse-wheel",
+                "Right-click",
+                "All of the above"
+            ],
+            required: true
+            },
+            {
+            prompt: "How do you harvest crops once they are full grown?",
+            options: [
+                "Left click",
+                "Revolving the mouse-wheel",
+                "Right-click",
+                "All of the above"
+            ],
+            required: true
+            },
+            {
+            prompt: "Which crop has the least selling price?",
+            options: [
+                "Apple",
+                "Rice",
+                "Teak",
+                "None of the above"
+            ],
+            required: true
+            },
+            {
+            prompt: "Which crop takes the longest time to grow? And how long?",
+            options: [
+                "Apple; 3 years",
+                "Rice; 3 years",
+                "Teak; 3 years",
+                "Teak; 6 months"
+            ],
+            required: true
+            },
+            {
+            prompt: "Where would you find the details of your income and expenditures?",
+            options: [
+                "Ledger",
+                "On the plot",
+                "Not shown in the game",
+                "None of the above"
+            ],
+            required: true
+            },
+            {
+            prompt: "Which side of the game screen would you find the monthly details on the money lost on various crops?",
+            options: [
+                "Top",
+                "Bottom",
+                "Left",
+                "Right"
+            ],
+            required: true
+            }
+        ]
+        };
+
+        const question_texts = [
+            "How do you sow crops on the empty plot?",
+            "How do you choose which crops to sow using the mouse?",
+            "How do you harvest crops once they are full grown?",
+            "Which crop has the least selling price?",
+            "Which crop takes the longest time to grow? And how long?",
+            "Where would you find the details of your income and expenditures?",
+            "Which side of the game screen would you find the monthly details on the money lost on various crops?"
+        ];
+
+        const correct_answers_text = [
+            "Hovering over the empty slots on the farmland and then left clicking sows the crops on the empty plot.",
+            "Revolving the mouse-wheel will help you choose which crops to sow.",
+            "Hovering over the empty slots on the farmland and right clicking harvests the crops once they are full grown." +
+            "Fullgrown crops are shown with a sparling effect.",
+            "Rice has the least selling price.",
+            "Teak takes the most time to grow. It takes 3 years.",
+            "Ledger. It shows the details of all your income and expenditures.",
+            "Left side of the farmland. It shows the monthly details on the money lost on each crop in black."
+        ];
+
+        const summary_trial = {
+            type: jsPsychHtmlButtonResponse,
+            stimulus: function(){
+                let html = `<h3>Comprehension Check: Correct Answers</h3><ol>`;
+                for(let i=0; i<question_texts.length; i++){
+                    html += `<li>
+                        <strong>${question_texts[i]}</strong><br>
+                        <span style="color:green;">${correct_answers_text[i]}</span>
+                    </li><br>`;
+                }
+                html += '</ol><p>Click "Next" to continue.</p>'; // Also good to close the <ol>
+                return html; // <--- THIS LINE FIXES THE ERROR!
+            },
+            choices: ['Next']
+        };
+
+
+        // 7. Thank you screen
+        const thanks = {
+            type: jsPsychHtmlButtonResponse,
+            stimulus: `<p>Thank you for completing this pre-experiment survey!</p>
+                        <p>Please click the button below to move onto the main game.</p>`,
+            choices: ['Take me to the game!'],
+                on_finish: function(){
+                    window.location.href = "https://gx.games/games/ecv4z0/harvest-horizons/tracks/7a51a68e-1bf7-4a88-b0f4-6cd5c5f2c22e/";
+                }
+            };
+
+
+        // 8. Timeline array
+        const timeline = [
+            demographics,
+            intro_story,
+            ...adjust_trials,
+            final_calc,
+            instructions_story,
+            instructions_timeline,
+            farming_comprehension_check,
+            summary_trial,
+            thanks
+        ];
+
+        // 9. Run the experiment
+        jsPsych.run(timeline);
+
 </script>
 </html>
