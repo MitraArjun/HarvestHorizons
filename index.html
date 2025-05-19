@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <script src="https://unpkg.com/jspsych@7"></script>
+  <script src="https://unpkg.com/jspsych@7/plugins/jspsych-html-button-response.js"></script>
+</head>
+<body></body>
+<script>
+(async function(){
+
+  // 1) Define the delays table
+  const delays = [
+    {text: "1 hr", k_immediate:24.0, k_delayed:17.0},
+    {text: "2 hr", k_immediate:0,    k_delayed:0   },
+    // ... fill in all 31 entries ...
+    {text: "25 years", k_immediate:0.000129, k_delayed:0.000110}
+  ];
+
+  // 2) Demographics trial
+  const demographics = {
+    type: 'jspsych-html-button-response',
+    stimulus: `
+      <p>Please enter your demographics:</p>
+      Name: <input id="name"><br>
+      Age: <input id="age" type="number"><br>
+      Roll: <input id="roll"><br>
+      Gender:
+        <select id="gender">
+          <option>Male</option><option>Female</option><option>Other</option>
+        </select><br>
+      `,
+    choices: ['Continue'],
+    on_finish: () => ({
+      name: document.getElementById('name').value,
+      age:  document.getElementById('age').value,
+      roll: document.getElementById('roll').value,
+      gender: document.getElementById('gender').value
+    })
+  };
+
+  // 3) Build the 5-trial adjusting timeline
+  let low = 0, high = delays.length - 1;
+  const adjust_trials = [];
+  for(let t=0; t<5; t++){
+    adjust_trials.push({
+      type: 'jspsych-html-button-response',
+      stimulus: () => {
+        const mid = Math.floor((low+high)/2);
+        return `<p>Choose:</p>
+                <button>₹500 today</button>
+                <button>₹1000 in ${delays[mid].text}</button>`;
+      },
+      choices: ['Now','Later'],
+      on_finish: (data) => {
+        const mid = Math.floor((low+high)/2);
+        if(data.response === 0){
+          high = mid - 1;
+        } else {
+          low = mid + 1;
+        }
+        data.mid = mid;
+      }
+    });
+  }
+
+  // 4) Final calculation
+  const final_trial = {
+    type: 'jspsych-call-function',
+    func: () => {
+      const last = jsPsych.data.get().last(1).values()[0];
+      const mid = last.mid;
+      const choiceLeft = last.response === 0;
+      const k = choiceLeft
+        ? delays[mid].k_immediate
+        : delays[mid].k_delayed;
+      jsPsych.data.addProperties({discount_k: k});
+      alert('Your discount rate k = ' + k.toFixed(4));
+    }
+  };
+
+  // 5) Thanks screen
+  const thanks = {
+    type: 'jspsych-html-button-response',
+    stimulus: '<p>Thank you for participating!</p>',
+    choices: ['Finish']
+  };
+
+  // 6) Run the experiment
+  await jsPsych.init({
+    timeline: [
+      {type: 'jspsych-html-keyboard-response',stimulus: '<p>Press any key to begin.</p>'},
+      demographics,
+      ...adjust_trials,
+      final_trial,
+      thanks
+    ],
+    on_finish: () => jsPsych.data.display()
+  });
+
+})();
+</script>
+</html>
