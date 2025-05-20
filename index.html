@@ -189,158 +189,162 @@
     ];
 
     const instructions_timeline = slide_urls.map(url => ({
-        type: jsPsychImageButtonResponse,
-        stimulus: url,
-        choices: ['Next'],
-        prompt: '<p>Click "Next" to go to the next instruction.</p>',
-        stimulus_width: 960,
-        stimulus_height: 540
-    }));
+      type: jsPsychImageButtonResponse,
+      stimulus: url,
+      stimulus_width: 960,
+      stimulus_height: 540,
+      choices: ['Next']
+      }));
+
 
 
     // 7. Comprehension check
-    const farming_comprehension_check = {
+    const comprehension_questions = [
+      {
+        prompt: "How do you sow crops on the empty plot?",
+        options: [
+          "Left click",
+          "Revolving the mouse-wheel",
+          "Right-click",
+          "All of the above"
+        ],
+        correct: 0, 
+        feedback: "Hovering over the empty slots on the farmland and then left clicking sows the crops on the empty plot."
+      },
+      {
+        prompt: "How do you choose which crops to sow using the mouse?",
+        options: [
+          "Left click",
+          "Revolving the mouse-wheel",
+          "Right-click",
+          "All of the above"
+        ],
+        correct: 1, 
+        feedback: "Revolving the mouse-wheel will help you choose which crops to sow."
+      },
+      {
+        prompt: "How do you harvest crops once they are full grown?",
+        options: [
+          "Left click",
+          "Revolving the mouse-wheel",
+          "Right-click",
+          "All of the above"
+        ],
+        correct: 2, 
+        feedback: "Right-clicking will help you harvest crops once they are full grown."
+      },
+      {
+        prompt: "Which crop has the least selling price?",
+        options: [
+          "Apple",
+          "Rice",
+          "Teak",
+          "None of the above"
+        ],
+        correct: 1, 
+        feedback: "Rice has the least selling price of 275 coins."
+      },
+      {
+        prompt: "Which crop takes the longest time to grow? And how long?",
+        options: [
+          "Apple; 3 years",
+          "Rice; 3 years",
+          "Teak; 3 years",
+          "Teak; 6 months"
+        ],
+        correct: 2, 
+        feedback: "Teak takes the most time to grow. It takes 3 years."
+      },
+      {
+        prompt: "Where would you find the details of your income and expenditures?",
+        options: [
+          "Ledger",
+          "On the plot",
+          "Not shown in the game",
+          "None of the above"
+        ],
+        correct: 0, 
+        feedback: "Ledger. It shows the details of all your income and expenditures."
+      },
+      {
+        prompt: "Which side of the game screen would you find the monthly details on the money lost on various crops?",
+        options: [
+          "Top",
+          "Bottom",
+          "Left",
+          "Right"
+        ],
+        correct: 2, 
+        feedback: "Monthly details on the money lost on each crop in black are shown on the left side of the farmland.<br>" +
+          "The total sum of money lost across all crops is shown on the Ledger at the top under 'Crop Loss'."
+      }
+    ];
+
+    let comprehension_timeline = [];
+
+    comprehension_questions.forEach((q, idx) => {
+      // 1. Present the question
+      comprehension_timeline.push({
         type: jsPsychSurveyMultiChoice,
-        preamble: '<h2>Farming Game: Comprehension Check</h2><p>Please answer all questions below.</p>',
-        questions: [
-            {
-            prompt: "How do you sow crops on the empty plot?",
-            options: [
-                "Left click",
-                "Revolving the mouse-wheel",
-                "Right-click",
-                "All of the above"
-            ],
-            required: true
-            },
-            {
-            prompt: "How do you choose which crops to sow using the mouse?",
-            options: [
-                "Left click",
-                "Revolving the mouse-wheel",
-                "Right-click",
-                "All of the above"
-            ],
-            required: true
-            },
-            {
-            prompt: "How do you harvest crops once they are full grown?",
-            options: [
-                "Left click",
-                "Revolving the mouse-wheel",
-                "Right-click",
-                "All of the above"
-            ],
-            required: true
-            },
-            {
-            prompt: "Which crop has the least selling price?",
-            options: [
-                "Apple",
-                "Rice",
-                "Teak",
-                "None of the above"
-            ],
-            required: true
-            },
-            {
-            prompt: "Which crop takes the longest time to grow? And how long?",
-            options: [
-                "Apple; 3 years",
-                "Rice; 3 years",
-                "Teak; 3 years",
-                "Teak; 6 months"
-            ],
-            required: true
-            },
-            {
-            prompt: "Where would you find the details of your income and expenditures?",
-            options: [
-                "Ledger",
-                "On the plot",
-                "Not shown in the game",
-                "None of the above"
-            ],
-            required: true
-            },
-            {
-            prompt: "Which side of the game screen would you find the monthly details on the money lost on various crops?",
-            options: [
-                "Top",
-                "Bottom",
-                "Left",
-                "Right"
-            ],
-            required: true
+        preamble: `<h3>Comprehension Check (${idx+1}/${comprehension_questions.length})</h3>`,
+        questions: [{
+          prompt: q.prompt,
+          options: q.options,
+          required: true
+        }],
+        data: {correct: q.correct, q_idx: idx}
+      });
+
+      // 2. Show feedback
+      comprehension_timeline.push({
+        type: jsPsychHtmlButtonResponse,
+        stimulus: function() {
+          const last = jsPsych.data.get().last(1).values()[0];
+          const selected = last.response.Q0; 
+          const correct_answer = q.options[q.correct];
+          console.log(selected, correct_answer);
+          let feedback_msg = '';
+          if (selected === correct_answer) {
+            feedback_msg = `<span style="color:green;"><strong>Correct!</strong></span>`;
+          } else {
+            feedback_msg = `<span style="color:red;"><strong>Incorrect.</strong></span><br>Correct answer: <span style="color:green;">${correct_answer}</span>`;
+          }
+          return `
+            <h3>Feedback</h3>
+            <p>${feedback_msg}</p>
+            <p>${q.feedback}</p>
+            `;
+        },
+        choices: ['Next']
+      });
+    });
+
+    // 7. Thank you screen
+    const thanks = {
+        type: jsPsychHtmlButtonResponse,
+        stimulus: `<p>Thank you for completing this pre-experiment survey!</p>
+                    <p>Please click the button below to move onto the main game.</p>`,
+        choices: ['Take me to the game!'],
+            on_finish: function(){
+                window.location.href = "https://gx.games/games/ecv4z0/harvest-horizons/tracks/7a51a68e-1bf7-4a88-b0f4-6cd5c5f2c22e/";
             }
-        ]
-        };
-
-        const question_texts = [
-            "How do you sow crops on the empty plot?",
-            "How do you choose which crops to sow using the mouse?",
-            "How do you harvest crops once they are full grown?",
-            "Which crop has the least selling price?",
-            "Which crop takes the longest time to grow? And how long?",
-            "Where would you find the details of your income and expenditures?",
-            "Which side of the game screen would you find the monthly details on the money lost on various crops?"
-        ];
-
-        const correct_answers_text = [
-            "Hovering over the empty slots on the farmland and then left clicking sows the crops on the empty plot.",
-            "Revolving the mouse-wheel will help you choose which crops to sow.",
-            "Hovering over the empty slots on the farmland and right clicking harvests the crops once they are full grown." +
-            "Fullgrown crops are shown with a sparling effect.",
-            "Rice has the least selling price.",
-            "Teak takes the most time to grow. It takes 3 years.",
-            "Ledger. It shows the details of all your income and expenditures.",
-            "Left side of the farmland. It shows the monthly details on the money lost on each crop in black."
-        ];
-
-        const summary_trial = {
-            type: jsPsychHtmlButtonResponse,
-            stimulus: function(){
-                let html = `<h3>Comprehension Check: Correct Answers</h3><ol>`;
-                for(let i=0; i<question_texts.length; i++){
-                    html += `<li>
-                        <strong>${question_texts[i]}</strong><br>
-                        <span style="color:green;">${correct_answers_text[i]}</span>
-                    </li><br>`;
-                }
-                html += '</ol><p>Click "Next" to continue.</p>'; // Also good to close the <ol>
-                return html; // <--- THIS LINE FIXES THE ERROR!
-            },
-            choices: ['Next']
         };
 
 
-        // 7. Thank you screen
-        const thanks = {
-            type: jsPsychHtmlButtonResponse,
-            stimulus: `<p>Thank you for completing this pre-experiment survey!</p>
-                        <p>Please click the button below to move onto the main game.</p>`,
-            choices: ['Take me to the game!'],
-                on_finish: function(){
-                    window.location.href = "https://gx.games/games/ecv4z0/harvest-horizons/tracks/7a51a68e-1bf7-4a88-b0f4-6cd5c5f2c22e/";
-                }
-            };
+    // 8. Timeline array
+    const timeline = [
+        demographics,
+        intro_story,
+        ...adjust_trials,
+        final_calc,
+        instructions_story,
+        instructions_timeline,
+        ...comprehension_timeline,
+        thanks
+    ];
 
-
-        // 8. Timeline array
-        const timeline = [
-            demographics,
-            intro_story,
-            ...adjust_trials,
-            final_calc,
-            instructions_story,
-            instructions_timeline,
-            farming_comprehension_check,
-            summary_trial,
-            thanks
-        ];
-
-        // 9. Run the experiment
-        jsPsych.run(timeline);
+      // 9. Run the experiment
+      jsPsych.run(timeline);
 
 </script>
 </html>
