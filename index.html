@@ -19,7 +19,7 @@
   const jsPsych = initJsPsych();
 
   // 2. Your Google Sheets endpoint
-  const sheetUrl = "https://script.google.com/macros/s/AKfycbzpX-6Cf9jq2ewoB24KDzqWjP5_ADlTNwBCFsdhmLyKRQmzUAu-9T33-ZIspQ74WpKO/exec";
+  const sheetUrl = "https://script.google.com/macros/s/AKfycbz6WMv5fgBcKweLzx3NYclZKxCf7Huxs70iJhnJIRF9ZsQ8yCFo20CKRHJEq9uILkrH/exec";
   
 
   // 3. Demographics trial (uses jsPsychSurveyHtmlForm)
@@ -32,7 +32,7 @@
     html: `
       <label>Name: <input name="name" type="text" required></label><br>
       <label>Age: <input name="age"  type="number" min="18" max="100" required></label><br>
-      <label>IITK Roll: <input name="roll" type="text" required></label><br>
+      <label>IITK Roll No: <input name="roll" type="number" required></label><br>
       <label>Gender:
         <select name="gender" required>
           <option>Male</option>
@@ -40,7 +40,8 @@
           <option>Other</option>
         </select>
       </label>
-      <label>Email: <input name="email" type="email" required></label><br>
+      <label>IITK Email: <input name="email" type="email" required></label><br>
+      <label>UPI (for reimbursement): <input name="upi" type="text" required></label><br>
     `,
     button_label: 'Next',
   };
@@ -131,6 +132,16 @@
       const demoData = jsPsych.data.get().filter({trial_type: 'survey-html-form'}).last(1).values()[0];
       const responses = demoData.response;
 
+      /*console.log({
+        name:       responses.name,
+        age:        responses.age,
+        roll:       responses.roll,
+        gender:     responses.gender,
+        email:      responses.email, 
+        upi_id:     responses.upi,
+        discount_k: k
+      });*/
+
       // POST to Google Sheet
       fetch(sheetUrl, {
         method: "POST",
@@ -142,6 +153,7 @@
           roll:       responses.roll,
           gender:     responses.gender,
           email:      responses.email, 
+          upi_id:     responses.upi,
           discount_k: k
         })
       });
