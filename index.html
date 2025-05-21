@@ -15,139 +15,174 @@
 </head>
 <body></body>
 <script>
-  // 1. Initialize jsPsych
-  const jsPsych = initJsPsych();
 
-  // 2. Your Google Sheets endpoint
-  const sheetUrl = "https://script.google.com/macros/s/AKfycbz6WMv5fgBcKweLzx3NYclZKxCf7Huxs70iJhnJIRF9ZsQ8yCFo20CKRHJEq9uILkrH/exec";
-  
-
-  // 3. Demographics trial (uses jsPsychSurveyHtmlForm)
-  const demographics = {
-    type: jsPsychSurveyHtmlForm,
-    preamble: '<p><strong>Welcome to our experiment!</strong></p>' +
-              '<p><strong>Before we begin, we need to collect some demographic information.</strong></p>' +
-              '<p><strong>This information is for research purposes only and will be kept confidential.</strong></p>' +
-              '<p><strong>Please enter your demographics:</strong></p>',
-    html: `
-      <label>Name: <input name="name" type="text" required></label><br>
-      <label>Age: <input name="age"  type="number" min="18" max="100" required></label><br>
-      <label>IITK Roll No: <input name="roll" type="number" required></label><br>
-      <label>Gender:
-        <select name="gender" required>
-          <option>Male</option>
-          <option>Female</option>
-          <option>Other</option>
-        </select>
-      </label>
-      <label>IITK Email: <input name="email" type="email" required></label><br>
-      <label>UPI (for reimbursement): <input name="upi" type="email" required></label><br>
-    `,
-    button_label: 'Next',
-  };
-  
-  // 4. Delays Table (used in the 5-trial adjusting-delay procedure)
-  const delays = [
-    { text: "1 hr",       k_immediate: 24.0,    k_delayed: 17.0 },
-    { text: "2 hr",       k_immediate: 0,       k_delayed: 0 },
-    { text: "3 hr",       k_immediate: 9.79,    k_delayed: 6.93 },
-    { text: "4 hr",       k_immediate: 0,       k_delayed: 0 },
-    { text: "6 hr",       k_immediate: 4.90,    k_delayed: 3.27 },
-    { text: "9 hr",       k_immediate: 0,       k_delayed: 0 },
-    { text: "12 hr",      k_immediate: 2.31,    k_delayed: 1.41 },
-    { text: "1 day",      k_immediate: 0,       k_delayed: 0 },
-    { text: "1.5 days",   k_immediate: 0.816,   k_delayed: 0.577 },
-    { text: "2 days",     k_immediate: 0,       k_delayed: 0 },
-    { text: "3 days",     k_immediate: 0.408,   k_delayed: 0.289 },
-    { text: "4 days",     k_immediate: 0,       k_delayed: 0 },
-    { text: "1 week",     k_immediate: 0.189,   k_delayed: 0.117 },
-    { text: "1.5 weeks",  k_immediate: 0,       k_delayed: 0 },
-    { text: "2 weeks",    k_immediate: 0.0825,  k_delayed: 0.0583 },
-    { text: "3 weeks",    k_immediate: 0,       k_delayed: 0 },
-    { text: "1 month",    k_immediate: 0.0396,  k_delayed: 0.0232 },
-    { text: "2 months",   k_immediate: 0,       k_delayed: 0 },
-    { text: "3 months",   k_immediate: 0.0134,  k_delayed: 0.00949 },
-    { text: "4 months",   k_immediate: 0,       k_delayed: 0 },
-    { text: "6 months",   k_immediate: 0.00671, k_delayed: 0.004741 },
-    { text: "8 months",   k_immediate: 0,       k_delayed: 0 },
-    { text: "1 year",     k_immediate: 0.00335, k_delayed: 0.00194 },
-    { text: "2 years",    k_immediate: 0,       k_delayed: 0 },
-    { text: "3 years",    k_immediate: 0.00112, k_delayed: 0.000791 },
-    { text: "4 years",    k_immediate: 0,       k_delayed: 0 },
-    { text: "5 years",    k_immediate: 0.000612,k_delayed: 0.000433 },
-    { text: "8 years",    k_immediate: 0,       k_delayed: 0 },
-    { text: "12 years",   k_immediate: 0.000279,k_delayed: 0.000186 },
-    { text: "18 years",   k_immediate: 0,       k_delayed: 0 },
-    { text: "25 years",   k_immediate: 0.000129,k_delayed: 0.000110 }
-  ];
-
-  // 5. The 5-trial adjusting-delay procedure
-  const intro_story = {
-    type: jsPsychHtmlButtonResponse,
-    stimulus: `
-        <p>On the next few screens, you will be presented with hypothetical scenarios where you have to make a series of choices.<p>
-        <p>These choices will be about whether you would like to get ₹500 right now, or you can wait for a larger amount, ₹1000, after some time has passed.</p>
-        <p>Please choose between either options as they are presented. There are no right or wrong answers—just pick what you actually prefer.</p>
-    `,
-    choices: ['Next']
-    };
-
-  let low = 0, high = delays.length - 1;
-  const adjust_trials = [];
-  for(let t=0; t<5; t++){
-    adjust_trials.push({
-      type: jsPsychHtmlButtonResponse,
-      stimulus: () => {
-        const mid = Math.floor((low + high) / 2);
-        return `<p>Which do you prefer between these two options?</p>
-                <p><strong>Option A: ₹500 today</strong></p>
-                <p><strong>Option B: ₹1000 in ${delays[mid].text}</strong></p>`;
-      },
-      choices: ['Click to choose Rs. 500','Click to choose Rs. 1000'],
-      on_finish: (data) => {
-        const mid = Math.floor((low + high) / 2);
-        data.mid = mid;
-        if(data.response === 0){
-          high = mid - 1;
-        } else {
-          low = mid + 1;
-        }
+  // 0. Detect trackpad or mousewheel usage
+  document.body.innerHTML = `
+    <div id="trackpad-check" style="height:100vh;display:flex;flex-direction:column;justify-content:center;align-items:center;">
+      <h2>Before you begin...</h2>
+      <p style="font-size:1.3em;">Please scroll <b>anywhere on the screen</b> with your mouse wheel.</p>
+      <p>If you are on a laptop, please use a <b>physical mouse</b> for this experiment.</p>
+      <div style="margin-top:2em;font-size:1.5em;color:#555;" id="trackpad-message"></div>
+      <button id="mouse-next" style="display:none;margin-top:2em;padding:0.7em 2em;font-size:1.2em;">Next</button>
+    </div>
+  `;
+  let mouseDetected = false;
+  function detectTrackPad(e) {
+    let isTrackpad = false;
+    if (e.wheelDeltaY) {
+      if (Math.abs(e.wheelDeltaY) !== 120) {
+        isTrackpad = true;
       }
-    });
+    } else if (e.deltaMode === 0) {
+      isTrackpad = true;
+    }
+    const msgBox = document.getElementById('trackpad-message');
+    const nextBtn = document.getElementById('mouse-next');
+    if (isTrackpad) {
+      msgBox.textContent = "You will need a mouse to do this experiment. Please attach one and try again.";
+      msgBox.style.color = "red";
+      nextBtn.style.display = "none";
+      mouseDetected = false;
+    } else {
+      msgBox.textContent = "Thanks, please continue using the mouse.";
+      msgBox.style.color = "green";
+      nextBtn.style.display = "inline-block";
+      mouseDetected = true;
+    }
   }
+  window.addEventListener("mousewheel", detectTrackPad, false);
+  window.addEventListener("DOMMouseScroll", detectTrackPad, false);
+  window.addEventListener("wheel", detectTrackPad, false);
 
-  // 6. Final calculation & send to Google Sheet
-  const final_calc = {
-    type: jsPsychCallFunction,
-    func: () => {
-      const last = jsPsych.data.get().filter({trial_type:'html-button-response'}).last(1).values()[0];
-      const mid = last.mid;
-      const choiceLeft = last.response === 0;
-      const k = choiceLeft
-        ? delays[mid].k_immediate
-        : delays[mid].k_delayed;
-      jsPsych.data.addProperties({ discount_k: k });
+  // Next button click handler: start jsPsych ONLY if mouse detected
+  document.addEventListener('click', function(evt) {
+    if (evt.target && evt.target.id === "mouse-next" && mouseDetected) {
+      // Remove mouse detection UI
+      document.body.innerHTML = "";
+      startJsPsych();
+    }
+  });
 
-      // Extract demographics
-      const demoData = jsPsych.data.get().filter({trial_type: 'survey-html-form'}).last(1).values()[0];
-      const responses = demoData.response;
 
-      /*console.log({
-        name:       responses.name,
-        age:        responses.age,
-        roll:       responses.roll,
-        gender:     responses.gender,
-        email:      responses.email, 
-        upi_id:     responses.upi,
-        discount_k: k
-      });*/
+  function startJsPsych() {
+    // 1. Initialize jsPsych
+    const jsPsych = initJsPsych();
 
-      // POST to Google Sheet
-      fetch(sheetUrl, {
-        method: "POST",
-        mode: "no-cors",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+    // 2. Your Google Sheets endpoint
+    const sheetUrl = "https://script.google.com/macros/s/AKfycbz6WMv5fgBcKweLzx3NYclZKxCf7Huxs70iJhnJIRF9ZsQ8yCFo20CKRHJEq9uILkrH/exec";
+    
+
+    // 3. Demographics trial (uses jsPsychSurveyHtmlForm)
+    const demographics = {
+      type: jsPsychSurveyHtmlForm,
+      preamble: '<p><strong>Welcome to our experiment!</strong></p>' +
+                '<p><strong>Before we begin, we need to collect some demographic information.</strong></p>' +
+                '<p><strong>This information is for research purposes only and will be kept confidential.</strong></p>' +
+                '<p><strong>Please enter your demographics:</strong></p>',
+      html: `
+        <label>Name: <input name="name" type="text" required></label><br>
+        <label>Age: <input name="age"  type="number" min="18" max="100" required></label><br>
+        <label>IITK Roll No: <input name="roll" type="number" required></label><br>
+        <label>Gender:
+          <select name="gender" required>
+            <option>Male</option>
+            <option>Female</option>
+            <option>Other</option>
+          </select>
+        </label>
+        <label>IITK Email: <input name="email" type="email" required></label><br>
+        <label>UPI (for reimbursement): <input name="upi" type="email" required></label><br>
+      `,
+      button_label: 'Next',
+    };
+    
+    // 4. Delays Table (used in the 5-trial adjusting-delay procedure)
+    const delays = [
+      { text: "1 hr",       k_immediate: 24.0,    k_delayed: 17.0 },
+      { text: "2 hr",       k_immediate: 0,       k_delayed: 0 },
+      { text: "3 hr",       k_immediate: 9.79,    k_delayed: 6.93 },
+      { text: "4 hr",       k_immediate: 0,       k_delayed: 0 },
+      { text: "6 hr",       k_immediate: 4.90,    k_delayed: 3.27 },
+      { text: "9 hr",       k_immediate: 0,       k_delayed: 0 },
+      { text: "12 hr",      k_immediate: 2.31,    k_delayed: 1.41 },
+      { text: "1 day",      k_immediate: 0,       k_delayed: 0 },
+      { text: "1.5 days",   k_immediate: 0.816,   k_delayed: 0.577 },
+      { text: "2 days",     k_immediate: 0,       k_delayed: 0 },
+      { text: "3 days",     k_immediate: 0.408,   k_delayed: 0.289 },
+      { text: "4 days",     k_immediate: 0,       k_delayed: 0 },
+      { text: "1 week",     k_immediate: 0.189,   k_delayed: 0.117 },
+      { text: "1.5 weeks",  k_immediate: 0,       k_delayed: 0 },
+      { text: "2 weeks",    k_immediate: 0.0825,  k_delayed: 0.0583 },
+      { text: "3 weeks",    k_immediate: 0,       k_delayed: 0 },
+      { text: "1 month",    k_immediate: 0.0396,  k_delayed: 0.0232 },
+      { text: "2 months",   k_immediate: 0,       k_delayed: 0 },
+      { text: "3 months",   k_immediate: 0.0134,  k_delayed: 0.00949 },
+      { text: "4 months",   k_immediate: 0,       k_delayed: 0 },
+      { text: "6 months",   k_immediate: 0.00671, k_delayed: 0.004741 },
+      { text: "8 months",   k_immediate: 0,       k_delayed: 0 },
+      { text: "1 year",     k_immediate: 0.00335, k_delayed: 0.00194 },
+      { text: "2 years",    k_immediate: 0,       k_delayed: 0 },
+      { text: "3 years",    k_immediate: 0.00112, k_delayed: 0.000791 },
+      { text: "4 years",    k_immediate: 0,       k_delayed: 0 },
+      { text: "5 years",    k_immediate: 0.000612,k_delayed: 0.000433 },
+      { text: "8 years",    k_immediate: 0,       k_delayed: 0 },
+      { text: "12 years",   k_immediate: 0.000279,k_delayed: 0.000186 },
+      { text: "18 years",   k_immediate: 0,       k_delayed: 0 },
+      { text: "25 years",   k_immediate: 0.000129,k_delayed: 0.000110 }
+    ];
+
+    // 5. The 5-trial adjusting-delay procedure
+    const intro_story = {
+      type: jsPsychHtmlButtonResponse,
+      stimulus: `
+          <p>On the next few screens, you will be presented with hypothetical scenarios where you have to make a series of choices.<p>
+          <p>These choices will be about whether you would like to get ₹500 right now, or you can wait for a larger amount, ₹1000, after some time has passed.</p>
+          <p>Please choose between either options as they are presented. There are no right or wrong answers—just pick what you actually prefer.</p>
+      `,
+      choices: ['Next']
+      };
+
+    let low = 0, high = delays.length - 1;
+    const adjust_trials = [];
+    for(let t=0; t<5; t++){
+      adjust_trials.push({
+        type: jsPsychHtmlButtonResponse,
+        stimulus: () => {
+          const mid = Math.floor((low + high) / 2);
+          return `<p>Which do you prefer between these two options?</p>
+                  <p><strong>Option A: ₹500 today</strong></p>
+                  <p><strong>Option B: ₹1000 in ${delays[mid].text}</strong></p>`;
+        },
+        choices: ['Click to choose Rs. 500','Click to choose Rs. 1000'],
+        on_finish: (data) => {
+          const mid = Math.floor((low + high) / 2);
+          data.mid = mid;
+          if(data.response === 0){
+            high = mid - 1;
+          } else {
+            low = mid + 1;
+          }
+        }
+      });
+    }
+
+    // 6. Final calculation & send to Google Sheet
+    const final_calc = {
+      type: jsPsychCallFunction,
+      func: () => {
+        const last = jsPsych.data.get().filter({trial_type:'html-button-response'}).last(1).values()[0];
+        const mid = last.mid;
+        const choiceLeft = last.response === 0;
+        const k = choiceLeft
+          ? delays[mid].k_immediate
+          : delays[mid].k_delayed;
+        jsPsych.data.addProperties({ discount_k: k });
+
+        // Extract demographics
+        const demoData = jsPsych.data.get().filter({trial_type: 'survey-html-form'}).last(1).values()[0];
+        const responses = demoData.response;
+
+        /*console.log({
           name:       responses.name,
           age:        responses.age,
           roll:       responses.roll,
@@ -155,196 +190,211 @@
           email:      responses.email, 
           upi_id:     responses.upi,
           discount_k: k
-        })
-      });
-    }
-  };
+        });*/
 
-    // 6. Instructions trial
-    const instructions_story = {
-        type: jsPsychHtmlButtonResponse,
-        stimulus: `
-            <p>We will now introduce you to the instructions regarding the experiment.<p>
-            <p>Please read the instructions carefully and make sure you understand them.</p>
-            <p>There will be a couple of questions at the end to test your understanding.</p>
-        `,
-        choices: ['Next']
+        // POST to Google Sheet
+        fetch(sheetUrl, {
+          method: "POST",
+          mode: "no-cors",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name:       responses.name,
+            age:        responses.age,
+            roll:       responses.roll,
+            gender:     responses.gender,
+            email:      responses.email, 
+            upi_id:     responses.upi,
+            discount_k: k
+          })
+        });
+      }
     };
 
-    const slide_urls = [
-        'https://github.com/MitraArjun/pre_questionaire_HH/raw/main/slide01.jpg',
-        'https://github.com/MitraArjun/pre_questionaire_HH/raw/main/slide02.jpg',
-        'https://github.com/MitraArjun/pre_questionaire_HH/raw/main/slide03.jpg',
-        'https://github.com/MitraArjun/pre_questionaire_HH/raw/main/slide04.jpg',
-        'https://github.com/MitraArjun/pre_questionaire_HH/raw/main/slide05.jpg',
-        'https://github.com/MitraArjun/pre_questionaire_HH/raw/main/slide06.jpg',
-        'https://github.com/MitraArjun/pre_questionaire_HH/raw/main/slide07.jpg',
-        'https://github.com/MitraArjun/pre_questionaire_HH/raw/main/slide08.jpg',
-        'https://github.com/MitraArjun/pre_questionaire_HH/raw/main/slide09.jpg',
-        'https://github.com/MitraArjun/pre_questionaire_HH/raw/main/slide10.jpg',
-        'https://github.com/MitraArjun/pre_questionaire_HH/raw/main/slide11.jpg',
-        'https://github.com/MitraArjun/pre_questionaire_HH/raw/main/slide12.jpg',
-        'https://github.com/MitraArjun/pre_questionaire_HH/raw/main/slide13.jpg',
-        'https://github.com/MitraArjun/pre_questionaire_HH/raw/main/slide14.jpg'
-    ];
+      // 6. Instructions trial
+      const instructions_story = {
+          type: jsPsychHtmlButtonResponse,
+          stimulus: `
+              <p>We will now introduce you to the instructions regarding the experiment.<p>
+              <p>Please read the instructions carefully and make sure you understand them.</p>
+              <p>There will be a couple of questions at the end to test your understanding.</p>
+          `,
+          choices: ['Next']
+      };
 
-    const instructions_timeline = slide_urls.map(url => ({
-      type: jsPsychImageButtonResponse,
-      stimulus: url,
-      stimulus_width: 960,
-      stimulus_height: 540,
-      choices: ['Next']
-      }));
+      const slide_urls = [
+          'https://github.com/MitraArjun/pre_questionaire_HH/raw/main/slide01.jpg',
+          'https://github.com/MitraArjun/pre_questionaire_HH/raw/main/slide02.jpg',
+          'https://github.com/MitraArjun/pre_questionaire_HH/raw/main/slide03.jpg',
+          'https://github.com/MitraArjun/pre_questionaire_HH/raw/main/slide04.jpg',
+          'https://github.com/MitraArjun/pre_questionaire_HH/raw/main/slide05.jpg',
+          'https://github.com/MitraArjun/pre_questionaire_HH/raw/main/slide06.jpg',
+          'https://github.com/MitraArjun/pre_questionaire_HH/raw/main/slide07.jpg',
+          'https://github.com/MitraArjun/pre_questionaire_HH/raw/main/slide08.jpg',
+          'https://github.com/MitraArjun/pre_questionaire_HH/raw/main/slide09.jpg',
+          'https://github.com/MitraArjun/pre_questionaire_HH/raw/main/slide10.jpg',
+          'https://github.com/MitraArjun/pre_questionaire_HH/raw/main/slide11.jpg',
+          'https://github.com/MitraArjun/pre_questionaire_HH/raw/main/slide12.jpg',
+          'https://github.com/MitraArjun/pre_questionaire_HH/raw/main/slide13.jpg',
+          'https://github.com/MitraArjun/pre_questionaire_HH/raw/main/slide14.jpg'
+      ];
 
-
-
-    // 7. Comprehension check
-    const comprehension_questions = [
-      {
-        prompt: "How do you sow crops on the empty plot?",
-        options: [
-          "Left click",
-          "Revolving the mouse-wheel",
-          "Right-click",
-          "All of the above"
-        ],
-        correct: 0, 
-        feedback: "Hovering over the empty slots on the farmland and then left clicking sows the crops on the empty plot."
-      },
-      {
-        prompt: "How do you choose which crops to sow using the mouse?",
-        options: [
-          "Left click",
-          "Revolving the mouse-wheel",
-          "Right-click",
-          "All of the above"
-        ],
-        correct: 1, 
-        feedback: "Revolving the mouse-wheel will help you choose which crops to sow."
-      },
-      {
-        prompt: "How do you harvest crops once they are full grown?",
-        options: [
-          "Left click",
-          "Revolving the mouse-wheel",
-          "Right-click",
-          "All of the above"
-        ],
-        correct: 2, 
-        feedback: "Right-clicking will help you harvest crops once they are full grown."
-      },
-      {
-        prompt: "Which crop has the least selling price?",
-        options: [
-          "Apple",
-          "Rice",
-          "Teak",
-          "None of the above"
-        ],
-        correct: 1, 
-        feedback: "Rice has the least selling price of 275 coins."
-      },
-      {
-        prompt: "Which crop takes the longest time to grow? And how long?",
-        options: [
-          "Apple; 3 years",
-          "Rice; 3 years",
-          "Teak; 3 years",
-          "Teak; 6 months"
-        ],
-        correct: 2, 
-        feedback: "Teak takes the most time to grow. It takes 3 years."
-      },
-      {
-        prompt: "Where would you find the details of your income and expenditures?",
-        options: [
-          "Ledger",
-          "On the plot",
-          "Not shown in the game",
-          "None of the above"
-        ],
-        correct: 0, 
-        feedback: "Ledger. It shows the details of all your income and expenditures."
-      },
-      {
-        prompt: "Which side of the game screen would you find the monthly details on the money lost on various crops?",
-        options: [
-          "Top",
-          "Bottom",
-          "Left",
-          "Right"
-        ],
-        correct: 2, 
-        feedback: "Monthly details on the money lost on each crop in black are shown on the left side of the farmland.<br>" +
-          "The total sum of money lost across all crops is shown on the Ledger at the top under 'Crop Loss'."
-      }
-    ];
-
-    let comprehension_timeline = [];
-
-    comprehension_questions.forEach((q, idx) => {
-      // 1. Present the question
-      comprehension_timeline.push({
-        type: jsPsychSurveyMultiChoice,
-        preamble: `<h3>Comprehension Check (${idx+1}/${comprehension_questions.length})</h3>`,
-        questions: [{
-          prompt: q.prompt,
-          options: q.options,
-          required: true
-        }],
-        data: {correct: q.correct, q_idx: idx}
-      });
-
-      // 2. Show feedback
-      comprehension_timeline.push({
-        type: jsPsychHtmlButtonResponse,
-        stimulus: function() {
-          const last = jsPsych.data.get().last(1).values()[0];
-          const selected = last.response.Q0; 
-          const correct_answer = q.options[q.correct];
-          console.log(selected, correct_answer);
-          let feedback_msg = '';
-          if (selected === correct_answer) {
-            feedback_msg = `<span style="color:green;"><strong>Correct!</strong></span>`;
-          } else {
-            feedback_msg = `<span style="color:red;"><strong>Incorrect.</strong></span><br>Correct answer: <span style="color:green;">${correct_answer}</span>`;
-          }
-          return `
-            <h3>Feedback</h3>
-            <p>${feedback_msg}</p>
-            <p>${q.feedback}</p>
-            `;
-        },
+      const instructions_timeline = slide_urls.map(url => ({
+        type: jsPsychImageButtonResponse,
+        stimulus: url,
+        stimulus_width: 960,
+        stimulus_height: 540,
         choices: ['Next']
-      });
-    });
+        }));
 
-    // 7. Thank you screen
-    const thanks = {
-        type: jsPsychHtmlButtonResponse,
-        stimulus: `<p>Thank you for completing this pre-experiment survey!</p>
-                    <p>Please click the button below to move onto the main game.</p>`,
-        choices: ['Take me to the game!'],
-            on_finish: function(){
-                window.location.href = "https://gx.games/games/ecv4z0/harvest-horizons/tracks/7a51a68e-1bf7-4a88-b0f4-6cd5c5f2c22e/";
+
+
+      // 7. Comprehension check
+      const comprehension_questions = [
+        {
+          prompt: "How do you sow crops on the empty plot?",
+          options: [
+            "Left click",
+            "Revolving the mouse-wheel",
+            "Right-click",
+            "All of the above"
+          ],
+          correct: 0, 
+          feedback: "Hovering over the empty slots on the farmland and then left clicking sows the crops on the empty plot."
+        },
+        {
+          prompt: "How do you choose which crops to sow using the mouse?",
+          options: [
+            "Left click",
+            "Revolving the mouse-wheel",
+            "Right-click",
+            "All of the above"
+          ],
+          correct: 1, 
+          feedback: "Revolving the mouse-wheel will help you choose which crops to sow."
+        },
+        {
+          prompt: "How do you harvest crops once they are full grown?",
+          options: [
+            "Left click",
+            "Revolving the mouse-wheel",
+            "Right-click",
+            "All of the above"
+          ],
+          correct: 2, 
+          feedback: "Right-clicking will help you harvest crops once they are full grown."
+        },
+        {
+          prompt: "Which crop has the least selling price?",
+          options: [
+            "Apple",
+            "Rice",
+            "Teak",
+            "None of the above"
+          ],
+          correct: 1, 
+          feedback: "Rice has the least selling price of 275 coins."
+        },
+        {
+          prompt: "Which crop takes the longest time to grow? And how long?",
+          options: [
+            "Apple; 3 years",
+            "Rice; 3 years",
+            "Teak; 3 years",
+            "Teak; 6 months"
+          ],
+          correct: 2, 
+          feedback: "Teak takes the most time to grow. It takes 3 years."
+        },
+        {
+          prompt: "Where would you find the details of your income and expenditures?",
+          options: [
+            "Ledger",
+            "On the plot",
+            "Not shown in the game",
+            "None of the above"
+          ],
+          correct: 0, 
+          feedback: "Ledger. It shows the details of all your income and expenditures."
+        },
+        {
+          prompt: "Which side of the game screen would you find the monthly details on the money lost on various crops?",
+          options: [
+            "Top",
+            "Bottom",
+            "Left",
+            "Right"
+          ],
+          correct: 2, 
+          feedback: "Monthly details on the money lost on each crop in black are shown on the left side of the farmland.<br>" +
+            "The total sum of money lost across all crops is shown on the Ledger at the top under 'Crop Loss'."
+        }
+      ];
+
+      let comprehension_timeline = [];
+
+      comprehension_questions.forEach((q, idx) => {
+        // 1. Present the question
+        comprehension_timeline.push({
+          type: jsPsychSurveyMultiChoice,
+          preamble: `<h3>Comprehension Check (${idx+1}/${comprehension_questions.length})</h3>`,
+          questions: [{
+            prompt: q.prompt,
+            options: q.options,
+            required: true
+          }],
+          data: {correct: q.correct, q_idx: idx}
+        });
+
+        // 2. Show feedback
+        comprehension_timeline.push({
+          type: jsPsychHtmlButtonResponse,
+          stimulus: function() {
+            const last = jsPsych.data.get().last(1).values()[0];
+            const selected = last.response.Q0; 
+            const correct_answer = q.options[q.correct];
+            console.log(selected, correct_answer);
+            let feedback_msg = '';
+            if (selected === correct_answer) {
+              feedback_msg = `<span style="color:green;"><strong>Correct!</strong></span>`;
+            } else {
+              feedback_msg = `<span style="color:red;"><strong>Incorrect.</strong></span><br>Correct answer: <span style="color:green;">${correct_answer}</span>`;
             }
-        };
+            return `
+              <h3>Feedback</h3>
+              <p>${feedback_msg}</p>
+              <p>${q.feedback}</p>
+              `;
+          },
+          choices: ['Next']
+        });
+      });
+
+      // 7. Thank you screen
+      const thanks = {
+          type: jsPsychHtmlButtonResponse,
+          stimulus: `<p>Thank you for completing this pre-experiment survey!</p>
+                      <p>Please click the button below to move onto the main game.</p>`,
+          choices: ['Take me to the game!'],
+              on_finish: function(){
+                  window.location.href = "https://gx.games/games/ecv4z0/harvest-horizons/tracks/7a51a68e-1bf7-4a88-b0f4-6cd5c5f2c22e/";
+              }
+          };
 
 
-    // 8. Timeline array
-    const timeline = [
-        demographics,
-        intro_story,
-        ...adjust_trials,
-        final_calc,
-        instructions_story,
-        instructions_timeline,
-        ...comprehension_timeline,
-        thanks
-    ];
+      // 8. Timeline array
+      const timeline = [
+          demographics,
+          intro_story,
+          ...adjust_trials,
+          final_calc,
+          instructions_story,
+          instructions_timeline,
+          ...comprehension_timeline,
+          thanks
+      ];
 
-      // 9. Run the experiment
-      jsPsych.run(timeline);
-
+        // 9. Run the experiment
+        jsPsych.run(timeline);
+  }
 </script>
 </html>
