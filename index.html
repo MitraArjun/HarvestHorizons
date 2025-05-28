@@ -11,7 +11,7 @@
   <script src="https://unpkg.com/@jspsych/plugin-survey-html-form@2.1.0"></script>
   <script src="https://unpkg.com/@jspsych/plugin-survey-multi-choice@2.1.0"></script>
   <script src="https://unpkg.com/@jspsych/plugin-image-button-response@2.1.0"></script>
-
+  <script src="https://unpkg.com/@jspsych/plugin-preload"></script>
 </head>
 <body></body>
 <script>
@@ -238,12 +238,20 @@
           'https://github.com/MitraArjun/pre_questionaire_HH/raw/main/slide14.jpg'
       ];
 
+      const preload = {
+          type: jsPsychPreload,
+          images: slide_urls,
+          show_progress_bar: true,
+          message: 'Loading instructions...'
+        };
+
+
       const instructions_timeline = slide_urls.map(url => ({
-        type: jsPsychImageButtonResponse,
-        stimulus: url,
-        stimulus_width: 1240,
-        stimulus_height: 700,
-        choices: ['Next']
+          type: jsPsychImageButtonResponse,
+          stimulus: url,
+          stimulus_width: 960,
+          stimulus_height: 540,
+          choices: ['Next']
         }));
 
 
@@ -388,7 +396,8 @@
           ...adjust_trials,
           final_calc,
           instructions_story,
-          instructions_timeline,
+          preload,
+          ...instructions_timeline,
           ...comprehension_timeline,
           thanks
       ];
